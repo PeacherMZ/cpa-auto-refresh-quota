@@ -117,7 +117,7 @@ jobs:
       - name: 启用 QEMU
         uses: docker/setup-qemu-action@v3
       - name: 启用 Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
       - name: 构建并打包
         shell: bash
         run: |

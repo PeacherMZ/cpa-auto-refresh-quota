@@ -1,0 +1,61 @@
+# 将此段合并进原版 CLIProxyAPI v7.2.104 的 config.yaml。
+# 不需要修改或重新构建 CPA；只需复制插件动态库、修改配置并完整重启 CPA。
+# 首次部署请保持 schedule_enabled: false，先 dry-run，再只测试一个 auth_index。
+# dry-run 不会调用模型，但会清理上次异常退出遗留的 priority transaction marker。
+plugins:
+  enabled: true
+  dir: "plugins"
+  configs:
+    cpa-auto-refresh-quota:
+      enabled: true
+
+      # CPA 只启用优先级最高的 Scheduler 插件。
+      # 请让本插件成为唯一 Scheduler；此值应高于其他插件。
+      priority: 10000
+
+      # 自动调度开关。关闭时仍可通过 Management API 查看状态和手动运行。
+      schedule_enabled: false
+
+      # IANA 时区；也可使用 Local 或 UTC。
+      timezone: "Asia/Shanghai"
+
+      # 每天可配置多个 HH:MM 或 HH:MM:SS 时间点，最多 64 个。
+      times:
+        - "08:00"
+        - "12:00"
+        - "20:00:00"
+
+      # 必须改成当前 CPA 能正常路由的模型。
+      model: "gpt-5.5"
+      message: "Reply with OK only."
+
+      # 插件构造非流式 OpenAI Chat Completions 请求体。
+      entry_protocol: "openai"
+      exit_protocol: "openai"
+      max_tokens: 16
+
+      # 空数组表示不按 provider 过滤。示例： ["codex", "claude"]
+      providers: []
+
+      # 使用 host.auth.list 返回的 auth_index，而不是内部 auth ID。
+      # include 为空表示允许全部候选；exclude 在 include 之后继续排除。
+      include_auth_indices: []
+      exclude_auth_indices: []
+
+      # 默认只处理有物理认证文件的记录，并跳过 unavailable 记录。
+      physical_files_only: true
+      skip_unavailable: true
+
+      # CPA 在调用 Scheduler 前只保留全局最高 auth priority 档。
+      # 开启后，插件会逐个把低优先级目标临时对齐到全局最高值，请求结束后恢复。
+      # 该功能会读取并短暂重写物理认证 JSON；默认 false，建议先 dry-run 后再显式开启。
+      temporary_priority_override: false
+
+      # 等待 CPA watcher 发布临时/恢复后 priority 的最长时间。
+      priority_sync_timeout: "5s"
+
+      # 每个认证模型请求的最长时间；超时后仍会尝试恢复 priority。
+      request_timeout: "2m"
+
+      # 相邻认证调用之间的间隔，Go duration，范围 0 到 1h。
+      delay_between_auths: "1s"

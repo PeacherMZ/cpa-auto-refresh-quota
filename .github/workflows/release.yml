@@ -1,0 +1,197 @@
+name: 发布动态库
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    name: 发布前验证
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出源码
+        uses: actions/checkout@v4
+      - name: 安装 Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: 检查标签格式
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/* ]] && [[ ! "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([.+-][0-9A-Za-z.-]+)?$ ]]; then
+            printf '标签必须使用语义化版本，例如 v0.3.0。当前值：%s\n' "$GITHUB_REF_NAME"
+            exit 1
+          fi
+      - name: 运行测试和静态检查
+        run: |
+          go test -mod=readonly -count=1 ./...
+          go vet ./...
+      - name: 检查敏感信息
+        run: bash scripts/check-secrets.sh
+
+  windows-amd64:
+    name: 构建 Windows amd64
+    needs: validate
+    runs-on: windows-latest
+    steps:
+      - name: 检出源码
+        uses: actions/checkout@v4
+      - name: 安装 Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: 配置 MinGW-w64
+        shell: pwsh
+        run: |
+          $candidates = @(
+            'C:\msys64\ucrt64\bin\gcc.exe',
+            'C:\msys64\mingw64\bin\gcc.exe',
+            'C:\mingw64\bin\gcc.exe'
+          )
+          $gcc = $candidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+          if (-not $gcc) { throw "GitHub Windows 运行器中未找到 MinGW-w64 GCC。" }
+          Split-Path -Parent $gcc | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - name: 构建并打包
+        shell: pwsh
+        run: |
+          if ("$env:GITHUB_REF_NAME" -match '^v[0-9]') {
+            $version = "$env:GITHUB_REF_NAME" -replace '^v', ''
+          } else {
+            $version = "0.0.0-dev"
+          }
+          New-Item -ItemType Directory -Force -Path release | Out-Null
+          .\scripts\build.ps1 -TargetOS windows -TargetArch amd64 -Version $version -OutputDir "package\plugins\windows\amd64"
+          Compress-Archive -Path "package\plugins" -DestinationPath "release\cpa-auto-refresh-quota-v$version-windows-amd64.zip"
+      - name: 上传 Windows 产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-amd64
+          path: release/*
+          if-no-files-found: error
+
+  linux-amd64:
+    name: 构建 Linux amd64
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出源码
+        uses: actions/checkout@v4
+      - name: 安装 Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: 安装 C 编译器
+        run: sudo apt-get update && sudo apt-get install -y build-essential
+      - name: 构建并打包
+        shell: bash
+        run: |
+          case "$GITHUB_REF_NAME" in
+            v[0-9]*) version=${GITHUB_REF_NAME#v} ;;
+            *) version=0.0.0-dev ;;
+          esac
+          mkdir -p release
+          VERSION="$version" GOOS=linux GOARCH=amd64 bash scripts/build.sh package/plugins/linux/amd64
+          tar -C package -czf "release/cpa-auto-refresh-quota-v${version}-linux-amd64.tar.gz" plugins
+      - name: 上传 Linux amd64 产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-amd64
+          path: release/*
+          if-no-files-found: error
+
+  linux-arm64:
+    name: 构建 Linux arm64
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出源码
+        uses: actions/checkout@v4
+      - name: 启用 QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: 启用 Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: 构建并打包
+        shell: bash
+        run: |
+          case "$GITHUB_REF_NAME" in
+            v[0-9]*) version=${GITHUB_REF_NAME#v} ;;
+            *) version=0.0.0-dev ;;
+          esac
+          mkdir -p package/plugins/linux/arm64 release
+          docker buildx build \
+            --platform linux/arm64 \
+            --target artifact \
+            --build-arg "VERSION=$version" \
+            --output type=local,dest=package/plugins/linux/arm64 \
+            .
+          tar -C package -czf "release/cpa-auto-refresh-quota-v${version}-linux-arm64.tar.gz" plugins
+      - name: 上传 Linux arm64 产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-arm64
+          path: release/*
+          if-no-files-found: error
+
+  macos-native:
+    name: 构建 macOS 原生架构
+    needs: validate
+    runs-on: macos-latest
+    steps:
+      - name: 检出源码
+        uses: actions/checkout@v4
+      - name: 安装 Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: 构建并打包
+        shell: bash
+        run: |
+          case "$GITHUB_REF_NAME" in
+            v[0-9]*) version=${GITHUB_REF_NAME#v} ;;
+            *) version=0.0.0-dev ;;
+          esac
+          arch=$(go env GOARCH)
+          mkdir -p release
+          VERSION="$version" GOOS=darwin GOARCH="$arch" bash scripts/build.sh "package/plugins/darwin/$arch"
+          tar -C package -czf "release/cpa-auto-refresh-quota-v${version}-darwin-${arch}.tar.gz" plugins
+      - name: 上传 macOS 产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-native
+          path: release/*
+          if-no-files-found: error
+
+  publish:
+    name: 创建 GitHub Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs:
+      - windows-amd64
+      - linux-amd64
+      - linux-arm64
+      - macos-native
+    runs-on: ubuntu-latest
+    steps:
+      - name: 下载全部产物
+        uses: actions/download-artifact@v4
+        with:
+          path: release
+          merge-multiple: true
+      - name: 生成 SHA-256 校验文件
+        shell: bash
+        run: |
+          cd release
+          sha256sum cpa-auto-refresh-quota-* > SHA256SUMS
+      - name: 创建 Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: release/*

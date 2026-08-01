@@ -1,0 +1,38 @@
+/dist/
+/bin/
+/build/
+/coverage/
+/.cache/
+coverage.out
+coverage.html
+*.test
+*.h
+*.so
+*.dll
+*.dylib
+
+# 本地配置、认证与日志
+/config.yaml
+/config.local.yaml
+/config.*.local.yaml
+/.env
+/.env.*
+!/.env.example
+/auths/
+/logs/
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa
+id_ed25519
+
+# 编辑器与系统文件
+/.idea/
+/.vscode/
+.DS_Store
+Thumbs.db
+
+# 本地调查或上游源码快照
+/.upstream-*/
+/.research-*/

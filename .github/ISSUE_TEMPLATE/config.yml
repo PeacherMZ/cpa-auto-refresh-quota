@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 私下报告安全问题
+    url: https://github.com/PeacherMZ/cpa-auto-refresh-quota/security/advisories/new
+    about: 请勿在公开 Issue 中披露漏洞细节或真实凭据。

@@ -47,17 +47,22 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
-      - name: 配置 MinGW-w64
+      - name: 安装 MSYS2 UCRT64 工具链
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: mingw-w64-ucrt-x86_64-gcc
+      - name: 配置 UCRT64 编译器
         shell: pwsh
         run: |
-          $candidates = @(
-            'C:\msys64\ucrt64\bin\gcc.exe',
-            'C:\msys64\mingw64\bin\gcc.exe',
-            'C:\mingw64\bin\gcc.exe'
-          )
-          $gcc = $candidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
-          if (-not $gcc) { throw "GitHub Windows 运行器中未找到 MinGW-w64 GCC。" }
-          Split-Path -Parent $gcc | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          $toolchain = 'C:\msys64\ucrt64\bin'
+          $gcc = Join-Path $toolchain 'gcc.exe'
+          $gxx = Join-Path $toolchain 'g++.exe'
+          if (-not (Test-Path -LiteralPath $gcc)) { throw "未找到 MSYS2 UCRT64 GCC。" }
+          $toolchain | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          "CC=$gcc" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "CXX=$gxx" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       - name: 构建并打包
         shell: pwsh
         run: |

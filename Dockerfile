@@ -14,15 +14,16 @@ RUN go mod download
 COPY cmd ./cmd
 COPY internal ./internal
 
-ARG TARGETARCH=amd64
+ARG TARGETARCH
 ARG VERSION=""
 
 RUN mkdir -p /out \
     && version="${VERSION#v}" \
+    && target_arch="${TARGETARCH:-$(go env GOARCH)}" \
     && artifact="cpa-auto-refresh-quota.so" \
     && ldflags="-s -w" \
     && if [ -n "${version}" ]; then artifact="cpa-auto-refresh-quota-v${version}.so"; ldflags="${ldflags} -X main.pluginVersion=${version}"; fi \
-    && CGO_ENABLED=1 GOOS=linux GOARCH="${TARGETARCH}" \
+    && CGO_ENABLED=1 GOOS=linux GOARCH="${target_arch}" \
        go build -buildvcs=false -trimpath -ldflags="${ldflags}" \
        -buildmode=c-shared \
        -o "/out/${artifact}" \

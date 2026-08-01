@@ -48,6 +48,7 @@ jobs:
           go-version-file: go.mod
           cache: true
       - name: 安装 MSYS2 UCRT64 工具链
+        id: msys2
         uses: msys2/setup-msys2@v2
         with:
           msystem: UCRT64
@@ -55,8 +56,10 @@ jobs:
           install: mingw-w64-ucrt-x86_64-gcc
       - name: 配置 UCRT64 编译器
         shell: pwsh
+        env:
+          MSYS2_LOCATION: ${{ steps.msys2.outputs.msys2-location }}
         run: |
-          $toolchain = 'C:\msys64\ucrt64\bin'
+          $toolchain = Join-Path $env:MSYS2_LOCATION 'ucrt64\bin'
           $gcc = Join-Path $toolchain 'gcc.exe'
           $gxx = Join-Path $toolchain 'g++.exe'
           if (-not (Test-Path -LiteralPath $gcc)) { throw "未找到 MSYS2 UCRT64 GCC。" }

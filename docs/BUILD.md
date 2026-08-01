@@ -11,7 +11,7 @@
 
 各系统常见依赖：
 
-- Windows：MSYS2/MinGW-w64 或兼容的 GCC/Clang 工具链。
+- Windows：推荐使用 [LLVM-MinGW](https://github.com/mstorsjo/llvm-mingw)，也可使用与当前 Go 版本兼容的 MinGW-w64 工具链。
 - Debian/Ubuntu：`sudo apt-get install build-essential`。
 - Fedora/RHEL：`sudo dnf groupinstall "Development Tools"`。
 - macOS：`xcode-select --install`。
@@ -43,12 +43,16 @@ go env GOOS GOARCH CGO_ENABLED CC
 dist/cpa-auto-refresh-quota-v0.3.0.dll
 ```
 
-如果 `go build` 报找不到 C 编译器，请先确保 `gcc.exe` 或兼容编译器位于 `PATH`，再运行：
+如果 `go build` 报找不到 C 编译器，请先确保 LLVM-MinGW 的 `bin` 目录位于 `PATH`，并在当前 PowerShell 会话中指定编译器：
 
 ```powershell
-gcc --version
+$env:CC = "clang"
+$env:CXX = "clang++"
+clang --version
 go env CC
 ```
+
+Go 1.26 生成的 Windows DLL 导出定义文件可能与部分 GNU `ld` 版本不兼容；仓库的发布工作流固定使用 LLVM-MinGW，以避免链接阶段把 `export_file.def` 误判为链接脚本。
 
 ## Linux 或 macOS 构建
 

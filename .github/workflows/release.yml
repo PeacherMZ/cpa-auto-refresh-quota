@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 检出源码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: 安装 Go
         uses: actions/setup-go@v5
         with:
@@ -41,7 +41,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: 检出源码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: 安装 Go
         uses: actions/setup-go@v5
         with:
@@ -92,7 +92,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 检出源码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: 安装 Go
         uses: actions/setup-go@v5
         with:
@@ -123,7 +123,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 检出源码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: 启用 QEMU
         uses: docker/setup-qemu-action@v3
       - name: 启用 Docker Buildx
@@ -156,7 +156,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: 检出源码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: 安装 Go
         uses: actions/setup-go@v5
         with:

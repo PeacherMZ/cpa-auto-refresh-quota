@@ -80,7 +80,7 @@ jobs:
           .\scripts\build.ps1 -TargetOS windows -TargetArch amd64 -Version $version -OutputDir "package\plugins\windows\amd64"
           Compress-Archive -Path "package\plugins" -DestinationPath "release\cpa-auto-refresh-quota-v$version-windows-amd64.zip"
       - name: 上传 Windows 产物
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: windows-amd64
           path: release/*
@@ -111,7 +111,7 @@ jobs:
           VERSION="$version" GOOS=linux GOARCH=amd64 bash scripts/build.sh package/plugins/linux/amd64
           tar -C package -czf "release/cpa-auto-refresh-quota-v${version}-linux-amd64.tar.gz" plugins
       - name: 上传 Linux amd64 产物
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: linux-amd64
           path: release/*
@@ -144,7 +144,7 @@ jobs:
             .
           tar -C package -czf "release/cpa-auto-refresh-quota-v${version}-linux-arm64.tar.gz" plugins
       - name: 上传 Linux arm64 产物
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: linux-arm64
           path: release/*
@@ -174,7 +174,7 @@ jobs:
           VERSION="$version" GOOS=darwin GOARCH="$arch" bash scripts/build.sh "package/plugins/darwin/$arch"
           tar -C package -czf "release/cpa-auto-refresh-quota-v${version}-darwin-${arch}.tar.gz" plugins
       - name: 上传 macOS 产物
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: macos-native
           path: release/*
